@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Growthbook\Growthbook.Core\Growthbook.Core.csproj" />
+    <ProjectReference Include="..\..\src\Growthbook.Core\Growthbook.Core.csproj" />
   </ItemGroup>
 
 </Project>

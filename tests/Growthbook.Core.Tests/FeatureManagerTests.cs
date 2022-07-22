@@ -1,6 +1,6 @@
 namespace Growthbook.Core.Tests
 {
-    public class FlagProviderTests
+    public class FeatureManagerTests
     {
         [Fact]
         public void GetFeatureValue_ShouldBeEqual()
