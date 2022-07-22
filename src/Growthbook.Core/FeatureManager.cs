@@ -5,8 +5,13 @@ namespace Growthbook.Core
 {
     public class FeatureManager
     {
-        private readonly Dictionary<string, Feature> _features = new();
+        private readonly IFeatureProvider _provider;
         private readonly Dictionary<string, object> _attributes = new();
+
+        public FeatureManager(IFeatureProvider provider)
+        {
+            _provider = provider;
+        }
 
         public IReadOnlyDictionary<string, object> Attributes
         {
@@ -20,7 +25,7 @@ namespace Growthbook.Core
         {
             get
             {
-                return _features;
+                return _provider.Data;
             }
         }
 
@@ -84,24 +89,6 @@ namespace Growthbook.Core
             }
         }
 
-        public void SetFeatures(string json)
-        {
-            if (JObject.Parse(json).TryGetValue("features", out JToken? featuresValue) && featuresValue is JObject features)
-            {
-                var props = features.Properties();
-
-                foreach (var prop in props)
-                {
-                    string key = prop.Name;
-                    Feature? feature = prop.Value.ToObject<Feature>();
-                    if (feature is not null)
-                    {
-                        _features.Add(key, feature);
-                    }
-                }
-            }
-        }
-
         public T? GetFeatureValue<T>(string key, T fallback)
         {
             FeatureResult<T> result = EvalFeature<T>(key);
@@ -113,24 +100,20 @@ namespace Growthbook.Core
             return fallback;
         }
 
-        private static float GetHash(string input)
+        private bool EvalAnd(JObject attributes, JToken conditions)
         {
-            const int offsetBasis = unchecked((int)2166136261);
-            const int prime = 16777619;
-            float n = input.Aggregate(offsetBasis, (r, o) => (r ^ o.GetHashCode()) * prime);
-            return (n % 1000) / 1000;
-        }
+            if (conditions is JArray conditionsArray)
+            {
+                foreach (JObject condition in conditionsArray.Cast<JObject>())
+                {
+                    if (!EvalCondition(attributes, condition))
+                    {
+                        return false;
+                    }
+                }
+            }
 
-        private static bool InNamespace(string userId, Tuple<string, float, float> ns)
-        {
-            (string namespaceId, float rangeStart, float rangeEnd) = ns;
-            float n = GetHash(userId + "__" + namespaceId);
-            return n >= rangeStart && n < rangeEnd;
-        }
-
-        private static JToken? GetPath(JObject attributes, string path)
-        {
-            return attributes.GetValue(path);
+            return true;
         }
 
         private bool EvalOr(JObject attributes, JToken conditions)
@@ -152,83 +135,6 @@ namespace Growthbook.Core
             }
 
             return false;
-        }
-
-        private bool EvalAnd(JObject attributes, JToken conditions)
-        {
-            if (conditions is JArray conditionsArray)
-            {
-                foreach (JObject condition in conditionsArray.Cast<JObject>())
-                {
-                    if (!EvalCondition(attributes, condition))
-                    {
-                        return false;
-                    }
-                }
-            }
-
-            return true;
-        }
-
-        private static bool IsOperatorObject(JToken? input)
-        {
-            if (input is JObject @object)
-            {
-                IEnumerable<JProperty> objProps = @object.Properties();
-                foreach (JProperty objProp in objProps)
-                {
-                    if (!objProp.Name.StartsWith('$'))
-                    {
-                        return false;
-                    }
-                }
-
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-        private static string GetAttributeType(JToken? input)
-        {
-            if (input is null)
-            {
-                return "null";
-            }
-
-            switch (input.Type)
-            {
-                case JTokenType.String:
-                case JTokenType.Guid:
-                case JTokenType.Uri:
-                case JTokenType.Date:
-                    return "string";
-                case JTokenType.Integer:
-                case JTokenType.Float:
-                case JTokenType.TimeSpan:
-                    return "number";
-                case JTokenType.Boolean:
-                    return "boolean";
-                case JTokenType.Array:
-                    return "array";
-                case JTokenType.Object:
-                    return "object";
-                case JTokenType.Null:
-                    return "null";
-                case JTokenType.Undefined:
-                    return "undefined";
-                case JTokenType.None:
-                case JTokenType.Constructor:
-                case JTokenType.Property:
-                case JTokenType.Comment:
-                case JTokenType.Raw:
-                case JTokenType.Bytes:
-                    return "unknown";
-                default:
-                    return "unknown";
-            }
         }
 
         private bool EvalConditionValue(JToken conditionValue, JToken? attributeValue)
@@ -328,7 +234,7 @@ namespace Growthbook.Core
                     return !JToken.EqualityComparer.Equals(attributeValue, conditionValue);
                 case "$lt":
                     throw new NotImplementedException();
-                    //return attributeValue < conditionValue;
+                //return attributeValue < conditionValue;
                 case "$lte":
                     throw new NotImplementedException();
                 //return attributeValue <= conditionValue;
@@ -392,6 +298,88 @@ namespace Growthbook.Core
                     return GetAttributeType(attributeValue) == conditionValue.ToObject<string>();
                 default:
                     return false;
+            }
+        }
+
+
+        private static float GetHash(string input)
+        {
+            const int offsetBasis = unchecked((int)2166136261);
+            const int prime = 16777619;
+            float n = input.Aggregate(offsetBasis, (r, o) => (r ^ o.GetHashCode()) * prime);
+            return (n % 1000) / 1000;
+        }
+
+        private static bool InNamespace(string userId, Tuple<string, float, float> ns)
+        {
+            (string namespaceId, float rangeStart, float rangeEnd) = ns;
+            float n = GetHash(userId + "__" + namespaceId);
+            return n >= rangeStart && n < rangeEnd;
+        }
+
+        private static JToken? GetPath(JObject attributes, string path)
+        {
+            return attributes.GetValue(path);
+        }
+
+        private static bool IsOperatorObject(JToken? input)
+        {
+            if (input is JObject @object)
+            {
+                IEnumerable<JProperty> objProps = @object.Properties();
+                foreach (JProperty objProp in objProps)
+                {
+                    if (!objProp.Name.StartsWith('$'))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        private static string GetAttributeType(JToken? input)
+        {
+            if (input is null)
+            {
+                return "null";
+            }
+
+            switch (input.Type)
+            {
+                case JTokenType.String:
+                case JTokenType.Guid:
+                case JTokenType.Uri:
+                case JTokenType.Date:
+                    return "string";
+                case JTokenType.Integer:
+                case JTokenType.Float:
+                case JTokenType.TimeSpan:
+                    return "number";
+                case JTokenType.Boolean:
+                    return "boolean";
+                case JTokenType.Array:
+                    return "array";
+                case JTokenType.Object:
+                    return "object";
+                case JTokenType.Null:
+                    return "null";
+                case JTokenType.Undefined:
+                    return "undefined";
+                case JTokenType.None:
+                case JTokenType.Constructor:
+                case JTokenType.Property:
+                case JTokenType.Comment:
+                case JTokenType.Raw:
+                case JTokenType.Bytes:
+                    return "unknown";
+                default:
+                    return "unknown";
             }
         }
     }
