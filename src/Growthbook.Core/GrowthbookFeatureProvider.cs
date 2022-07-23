@@ -13,6 +13,7 @@ namespace Growthbook.Core
 
         private Dictionary<string, Feature> _data = new();
 
+        private bool _loading;
         private bool _disposed;
 
         public GrowthbookFeatureProvider(
@@ -39,8 +40,25 @@ namespace Growthbook.Core
             }
         }
 
+        public void Load()
+        {
+            Task.Run(async () => await LoadAsync()).Wait();
+        }
+
         public async Task LoadAsync(CancellationToken cancellationToken = default)
         {
+            lock (_lock_)
+            {
+                if (_loading)
+                {
+                    return;
+                }
+                else
+                {
+                    _loading = true;
+                }
+            }
+
             string? requestPath = null;
             string responseBody = await _httpClient.GetStringAsync(requestPath, cancellationToken);
             JObject jObject = JObject.Parse(responseBody);
@@ -63,14 +81,17 @@ namespace Growthbook.Core
             {
                 _data = data;
             }
+
+            lock (_lock_)
+            {
+                _loading = false;
+            }
         }
 
         private async Task HandleTimerAsync(PeriodicTimer timer, CancellationToken cancellationToken = default)
         {
             try
             {
-                await Task.Run(async () => await LoadAsync(cancellationToken), cancellationToken); // Initial load
-
                 while (await timer.WaitForNextTickAsync(cancellationToken))
                 {
                     await Task.Run(async () => await LoadAsync(cancellationToken), cancellationToken); // Timer-based loads

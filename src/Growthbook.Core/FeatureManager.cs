@@ -89,12 +89,12 @@ namespace Growthbook.Core
             }
         }
 
-        public T? GetFeatureValue<T>(string key, T fallback)
+        public T GetFeatureValue<T>(string key, T fallback)
         {
             FeatureResult<T> result = EvalFeature<T>(key);
             if (result.On)
             {
-                return result.Value;
+                return result.Value ?? fallback;
             }
 
             return fallback;
