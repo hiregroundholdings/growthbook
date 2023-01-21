@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.3.32505.426
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Growthbook.Core", "src\Growthbook.Core\Growthbook.Core.csproj", "{17F1AA6A-40C8-42C2-8D9A-B04F4722DF4A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GrowthBook.Core", "src\Growthbook.Core\GrowthBook.Core.csproj", "{17F1AA6A-40C8-42C2-8D9A-B04F4722DF4A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Growthbook.Core.Tests", "tests\Growthbook.Core.Tests\Growthbook.Core.Tests.csproj", "{D17953F3-9D29-4CBE-BF50-7FD5F169D850}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GrowthBook.Core.Tests", "tests\Growthbook.Core.Tests\GrowthBook.Core.Tests.csproj", "{D17953F3-9D29-4CBE-BF50-7FD5F169D850}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

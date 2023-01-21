@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json.Linq;
 using System.Collections.Concurrent;
 
-namespace Growthbook.Core.Tests
+namespace GrowthBook.Core.Tests
 {
     internal class MockFeatureProvider : IFeatureProvider
     {

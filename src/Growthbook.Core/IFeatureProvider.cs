@@ -1,4 +1,4 @@
-﻿namespace Growthbook.Core
+﻿namespace GrowthBook.Core
 {
     public interface IFeatureProvider
     {

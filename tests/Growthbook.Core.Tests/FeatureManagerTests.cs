@@ -1,4 +1,4 @@
-namespace Growthbook.Core.Tests
+namespace GrowthBook.Core.Tests
 {
     public class FeatureManagerTests
     {
